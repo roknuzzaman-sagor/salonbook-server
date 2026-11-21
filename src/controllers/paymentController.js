@@ -2,11 +2,16 @@ import Stripe from "stripe";
 import { ObjectId } from "mongodb";
 import { collections } from "../config/db.js";
 
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
+
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  return key ? new Stripe(key) : null;
+}
 
 export async function createCheckoutSession(req, res) {
   try {
+    const stripe = getStripe();
     if (!stripe) return res.status(500).send({ message: "Stripe is not configured" });
 
     const { appointmentId } = req.body;
@@ -19,7 +24,6 @@ export async function createCheckoutSession(req, res) {
     if (appointment.paymentStatus === "paid") return res.status(400).send({ message: "Appointment already paid" });
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       line_items: [
         {
           price_data: {
@@ -47,6 +51,7 @@ export async function createCheckoutSession(req, res) {
 }
 
 export async function handleStripeWebhook(req, res) {
+  const stripe = getStripe();
   if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
     return res.status(500).send("Stripe webhook not configured");
   }
