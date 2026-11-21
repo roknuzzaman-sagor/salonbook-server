@@ -46,6 +46,7 @@ export async function createCheckoutSession(req, res) {
 
     res.send({ url: session.url });
   } catch (error) {
+    console.error("Stripe checkout error:", error.message);
     res.status(500).send({ message: "Failed to create checkout session", error: error.message });
   }
 }
@@ -53,6 +54,7 @@ export async function createCheckoutSession(req, res) {
 export async function handleStripeWebhook(req, res) {
   const stripe = getStripe();
   if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error("Stripe webhook not configured");
     return res.status(500).send("Stripe webhook not configured");
   }
 
@@ -61,40 +63,55 @@ export async function handleStripeWebhook(req, res) {
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
+    console.error("Stripe webhook signature error:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
-    const appointmentId = session.metadata?.appointmentId;
-    const customerId = session.metadata?.customerId;
+  try {
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const appointmentId = session.metadata?.appointmentId;
+      const customerId = session.metadata?.customerId;
 
-    if (appointmentId && ObjectId.isValid(appointmentId)) {
-      await collections.appointments.updateOne(
-        { _id: new ObjectId(appointmentId) },
-        { $set: { paymentStatus: "paid" } }
-      );
+      if (appointmentId && ObjectId.isValid(appointmentId)) {
+        const appointment = await collections.appointments.findOne({ _id: new ObjectId(appointmentId) });
 
-      await collections.transactions.updateOne(
-        { stripeSessionId: session.id },
-        {
-          $set: {
-            appointmentId,
-            customerId: customerId || "",
-            customerEmail: session.customer_details?.email || session.customer_email || "",
-            amount: (session.amount_total || 0) / 100,
-            currency: session.currency || "usd",
-            stripeSessionId: session.id,
-            status: "paid",
-            createdAt: new Date(),
+        await collections.appointments.updateOne(
+          { _id: new ObjectId(appointmentId) },
+          { $set: { paymentStatus: "paid" } }
+        );
+
+        await collections.transactions.updateOne(
+          { stripeSessionId: session.id },
+          {
+            $set: {
+              appointmentId,
+              customerId: customerId || appointment?.customerId || "",
+              customerEmail:
+                session.customer_details?.email ||
+                session.customer_email ||
+                appointment?.customerEmail ||
+                "",
+              serviceName: appointment?.serviceName || "Salon Service",
+              amount: (session.amount_total || 0) / 100,
+              currency: session.currency || "usd",
+              stripeSessionId: session.id,
+              status: "paid",
+              paidAt: new Date(),
+              createdAt: new Date(),
+            },
           },
-        },
-        { upsert: true }
-      );
+          { upsert: true }
+        );
+        console.log("Stripe payment confirmed for appointment", appointmentId);
+      }
     }
-  }
 
-  res.json({ received: true });
+    res.json({ received: true });
+  } catch (error) {
+    console.error("Stripe webhook handler error:", error.message);
+    res.status(500).send("Webhook handler failed");
+  }
 }
 
 export async function getTransactions(req, res) {
