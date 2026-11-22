@@ -20,11 +20,11 @@ export async function getAdminStats(req, res) {
 export async function getCustomerStats(req, res) {
   try {
     const query = { customerId: req.user.id };
-    const [total, pending, confirmed, cancelled] = await Promise.all([
-      collections.appointments.countDocuments(query),
+    const [total, pending, confirmed, cancelled] = await Promise.all([collections.appointments.countDocuments(query),
       collections.appointments.countDocuments({ ...query, status: "pending" }),
       collections.appointments.countDocuments({ ...query, status: "confirmed" }),
       collections.appointments.countDocuments({ ...query, status: "cancelled" }),
+      
     ]);
 
     res.send({ total, pending, confirmed, cancelled });

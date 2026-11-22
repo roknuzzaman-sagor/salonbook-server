@@ -1,60 +1,126 @@
-# SalonBook Server
+# SalonBook - Salon Appointment Booking Platform (Server)
 
-Express + MongoDB backend for SalonBook, a salon appointment booking platform.
+Express.js + MongoDB backend for SalonBook. This API handles authentication token bridging, service management, appointment requests, role-based dashboard data, Stripe Checkout session creation, and verified Stripe webhook payment confirmation.
 
-## Features
+## Live Links
 
-- REST API for services, appointments, users, dashboard stats, and transactions
-- JWT-protected routes with role-based access (`customer`, `admin`)
+- Live Website: `add-your-live-client-url`
+- Client Repository: `add-your-client-repo-url`
+- Server Repository: `add-your-server-repo-url`
+
+## Admin Evaluation Credentials
+
+- Admin Email: `add-admin-email`
+- Admin Password: `add-admin-password`
+
+> Replace placeholders before submission. Do not commit real secrets.
+
+## Important Features
+
+- REST API for services, appointments, users, stats, and transactions
+- JWT-protected routes with server-side role verification (`customer`, `admin`)
 - Better Auth token bridge endpoint (`POST /auth/token`) secured by `INTERNAL_API_SECRET`
-- Stripe Checkout session creation for confirmed, unpaid appointments
-- Stripe webhook verification for authoritative payment confirmation
-- Transaction storage in MongoDB after verified `checkout.session.completed`
-- Admin setup endpoint for promoting a registered user to admin
+- Service CRUD and active/inactive visibility control for admins
+- Appointment request flow with status rules and duplicate active slot prevention
+- Stripe Checkout session creation for confirmed, unpaid, customer-owned appointments
+- Stripe webhook verification using raw request body and `STRIPE_WEBHOOK_SECRET`
+- Payment status updated to paid only after verified `checkout.session.completed`
+- Transaction upsert by `stripeSessionId` to avoid duplicate webhook processing
+- Admin user management including block/unblock
 
-## Tech Stack
+## Technology Stack
 
-- Node.js / Express
+- Node.js
+- Express.js
 - MongoDB
 - JWT (`jsonwebtoken`)
 - Stripe
 - CORS / dotenv
 
-## Environment Variables
+## Installation Instructions
 
-Create a `.env` file in the server root. Do not commit secrets.
+1. Clone the server repository.
+2. Open the project folder.
+3. Install dependencies:
 
-```env
-DB_URL=
-PORT=5000
-CLIENT_URL=http://localhost:3000
-JWT_SECRET=
-INTERNAL_API_SECRET=
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
+```bash
+npm install
 ```
 
-## Run Locally
+4. Create a `.env` file in the server root and add required environment variables.
+5. Start the development server.
+
+## How to Run the Project Locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Server runs on `http://localhost:5000` by default.
+The server runs on `http://localhost:5000` by default.
 
-## Seed Services (optional)
+## Required Environment Variables
 
-If the services collection is empty:
+Create a `.env` file in the server root. Use variable names only in documentation and never commit actual secret values.
+
+
+## Stripe Webhook Setup
+
+The actual Stripe webhook route in this project is:
+
+```text
+POST /payments/webhook
+```
+
+Stripe payment status is updated only after verified webhook events.
+
+### Local testing with Stripe CLI
 
 ```bash
-node seed.js
+stripe listen --forward-to localhost:5000/payments/webhook
 ```
+
+Copy the CLI webhook signing secret into `STRIPE_WEBHOOK_SECRET`, then restart the server.
+
+### Local testing with ngrok + Stripe Dashboard
+
+If Stripe CLI is unavailable, expose the local server with ngrok and create a Stripe Dashboard webhook endpoint:
+
+```text
+https://<your-ngrok-domain>/payments/webhook
+```
+
+- Select event: `checkout.session.completed`
+- Copy the Dashboard endpoint signing secret (`whsec_...`) into `STRIPE_WEBHOOK_SECRET`
+- Restart the server after changing `.env`
+- Confirm Stripe Dashboard webhook deliveries return `200`
+
+## Main API Endpoints
+
+- `POST /auth/token` - issue JWT for authenticated Better Auth user (internal bridge)
+- `GET /services` - list services (supports search/filter/sort)
+- `GET /services/:id` - service details
+- `POST /services` - create service (admin)
+- `PATCH /services/:id` - update service (admin)
+- `DELETE /services/:id` - delete service (admin)
+- `POST /appointments` - create appointment request (customer)
+- `GET /appointments/my` - customer appointments
+- `GET /appointments` - all appointments (admin)
+- `PATCH /appointments/:id/status` - update appointment status
+- `POST /payments/create-checkout-session` - create Stripe Checkout session (customer)
+- `POST /payments/webhook` - Stripe webhook (raw body, verified signature)
+- `GET /transactions` - transactions (admin)
+- `GET /stats/admin` - admin dashboard stats
+- `GET /stats/customer` - customer dashboard stats
+- `GET /users/me` - current user profile
+- `PATCH /users/me` - update current user profile
+- `GET /users` - list users (admin)
+- `PATCH /users/:id/block` - block/unblock user (admin)
 
 ## Admin Setup
 
-1. Register a normal user from the client.
-2. Promote that user to admin:
+1. Register a normal user from the client app.
+2. Promote the user to admin:
 
 ```bash
 POST /setup/admin
@@ -66,30 +132,10 @@ Content-Type: application/json
 }
 ```
 
-## Stripe Webhook (Local)
+## Deployment Notes
 
-Stripe payment status is updated only after verified webhook events.
-
-```bash
-stripe listen --forward-to localhost:5000/payments/webhook
-```
-
-Use the webhook signing secret printed by Stripe CLI as `STRIPE_WEBHOOK_SECRET`, then restart the server.
-
-## Main Endpoints
-
-- `GET /services` - list services (supports filters)
-- `GET /services/:id` - service details
-- `POST/PATCH/DELETE /services/:id` - admin service management
-- `POST /appointments` - customer appointment request
-- `GET /appointments/my` - customer appointments
-- `GET /appointments` - admin all appointments
-- `PATCH /appointments/:id/status` - update appointment status
-- `POST /payments/create-checkout-session` - create Stripe Checkout session
-- `POST /payments/webhook` - Stripe webhook (raw body)
-- `GET /transactions` - admin transactions
-- `GET /stats/admin` - admin dashboard stats
-- `GET /stats/customer` - customer dashboard stats
-- `GET/PATCH /users/me` - profile
-- `GET /users` - admin users
-- `PATCH /users/:id/block` - admin block/unblock user
+- Deploy the server before testing live Stripe webhooks.
+- Set all environment variables in the deployment platform.
+- Configure Stripe Dashboard webhook to `https://<your-server-domain>/payments/webhook`.
+- Ensure `CLIENT_URL` matches the deployed client URL for CORS.
+- Do not expose `.env` or secret values.
