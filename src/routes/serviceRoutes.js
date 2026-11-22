@@ -7,7 +7,6 @@ import {
   getServices,
   updateService,
 } from "../controllers/serviceController.js";
-
 const router = express.Router();
 
 router.get("/services", getServices);
