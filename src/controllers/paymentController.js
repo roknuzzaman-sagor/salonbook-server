@@ -93,6 +93,7 @@ export async function handleStripeWebhook(req, res) {
                 appointment?.customerEmail ||
                 "",
               serviceName: appointment?.serviceName || "Salon Service",
+              appointmentDate: appointment?.appointmentDate || "",
               amount: (session.amount_total || 0) / 100,
               currency: session.currency || "usd",
               stripeSessionId: session.id,
