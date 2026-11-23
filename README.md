@@ -4,16 +4,10 @@ Express.js + MongoDB backend for SalonBook. This API handles authentication toke
 
 ## Live Links
 
-- Live Website: `add-your-live-client-url`
-- Client Repository: `add-your-client-repo-url`
-- Server Repository: `add-your-server-repo-url`
+- Live Website: `https://salonbook-server-imut.vercel.app`
+- Client Repository: `https://github.com/roknuzzaman-sagor/salonbook-client`
+- Server Repository: `https://github.com/roknuzzaman-sagor/salonbook-server`
 
-## Admin Evaluation Credentials
-
-- Admin Email: `add-admin-email`
-- Admin Password: `add-admin-password`
-
-> Replace placeholders before submission. Do not commit real secrets.
 
 ## Important Features
 
@@ -86,9 +80,7 @@ Copy the CLI webhook signing secret into `STRIPE_WEBHOOK_SECRET`, then restart t
 
 If Stripe CLI is unavailable, expose the local server with ngrok and create a Stripe Dashboard webhook endpoint:
 
-```text
-https://<your-ngrok-domain>/payments/webhook
-```
+
 
 - Select event: `checkout.session.completed`
 - Copy the Dashboard endpoint signing secret (`whsec_...`) into `STRIPE_WEBHOOK_SECRET`
@@ -132,10 +124,5 @@ Content-Type: application/json
 }
 ```
 
-## Deployment Notes
 
-- Deploy the server before testing live Stripe webhooks.
-- Set all environment variables in the deployment platform.
-- Configure Stripe Dashboard webhook to `https://<your-server-domain>/payments/webhook`.
-- Ensure `CLIENT_URL` matches the deployed client URL for CORS.
-- Do not expose `.env` or secret values.
+-
