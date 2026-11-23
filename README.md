@@ -109,20 +109,5 @@ If Stripe CLI is unavailable, expose the local server with ngrok and create a St
 - `GET /users` - list users (admin)
 - `PATCH /users/:id/block` - block/unblock user (admin)
 
-## Admin Setup
-
-1. Register a normal user from the client app.
-2. Promote the user to admin:
-
-```bash
-POST /setup/admin
-Content-Type: application/json
-
-{
-  "email": "admin@example.com",
-  "secret": "<INTERNAL_API_SECRET>"
-}
-```
 
 
--
